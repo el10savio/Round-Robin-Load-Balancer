@@ -9,17 +9,25 @@ import (
 	"time"
 )
 
+// Server is used to describe the individual servers
+// that are connected to the Load Balancer
 type Server struct {
 	Route        string
 	Alive        bool
 	ReverseProxy *httputil.ReverseProxy
 }
 
+// ServerList is all the servers the Load Balancer
+// has access to. The index of the server accessed
+// most recently is stored in ServerList.Latest
 type ServerList struct {
 	Servers []Server
 	Latest  int
 }
 
+// isAlive checks if a server is available by sending
+// a TCP request to server.Route and checking if it
+// successfully responds back
 func (server *Server) isAlive() bool {
 	timeout := time.Duration(1 * time.Second)
 
@@ -37,7 +45,12 @@ func (server *Server) isAlive() bool {
 	return true
 }
 
-func (serverList *ServerList) Init(serverRoutes []string) {
+// init is used to create the ServerList by taking in
+// a slice of routes that need to be connected to
+// the server and convert them to the Server
+// struct format and store them all
+// in ServerList.Servers slice
+func (serverList *ServerList) init(serverRoutes []string) {
 	log.Println("Creating Server List For Routes:", serverRoutes)
 
 	for _, serverRoute := range serverRoutes {
@@ -64,10 +77,23 @@ func (serverList *ServerList) Init(serverRoutes []string) {
 
 }
 
+// nextServer facilitates the round robin selection
+// of each server by getting back to the first
+// server after the last server is passed
 func (serverList *ServerList) nextServer() int {
 	return (serverList.Latest + 1) % len(serverList.Servers)
 }
 
+// loadBalance takes in the request and based on Round Robin method
+// assigns it to a particular server in ServerList.Servers. If no
+// servers are present it responds with a http.StatusServiceUnavailable
+// status back to the client and if there are servers present it then
+// checks if the server is alive and then only routes the request to it,
+// otherwise it loops through the entire ServerList.Servers to find
+// another alive server until it gets back to the first server
+// it tried accessing and then responds with a
+// http.StatusServiceUnavailable status
+// back to the client
 func (serverList *ServerList) loadBalance(w http.ResponseWriter, r *http.Request) {
 	if len(serverList.Servers) > 0 {
 		serverCount := 0
@@ -89,6 +115,9 @@ func (serverList *ServerList) loadBalance(w http.ResponseWriter, r *http.Request
 	http.Error(w, "No Servers Available", http.StatusServiceUnavailable)
 }
 
+// We can either import this as a package or use initialize
+// the ServerList by providing a list of server routes to
+// connect to and then create a server for the Load Balancer
 func main() {
 	var serverList ServerList
 	loadBalancerPort := "8080"
@@ -99,7 +128,7 @@ func main() {
 		"localhost:8085",
 	}
 
-	serverList.Init(serverRoutes)
+	serverList.init(serverRoutes)
 
 	http.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
 		serverList.loadBalance(w, r)
