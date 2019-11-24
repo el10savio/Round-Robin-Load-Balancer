@@ -5,8 +5,8 @@ Here we supply a list of routes to servers that generate a load balancer that us
 
 **Example**
 
-* go run any number of servers from /server
-* go run loadbalancer/loadbalancer.go
+1. go run any number of servers from /server
+2. go run loadbalancer/loadbalancer.go
 
 Now when you head over to localhost:8080. Based on the servers started it should show a new port every time you refresh the page.
 
