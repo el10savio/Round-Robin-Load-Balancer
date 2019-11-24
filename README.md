@@ -1,4 +1,4 @@
-# Round-Robin-Load-Balancer
+# Round Robin Load Balancer
 A simple round robin load balancer implemented in Go
 
 Here we supply a list of routes to servers that generate a load balancer that uses round robin selection to route requests to each server.
